@@ -1,0 +1,16 @@
+{
+    "name": "insolis/facebook-service-provider",
+    "description": "Lightweight silex service to ease communication with facebook",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Gábor Fási",
+            "email": "m@maerlyn.eu"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+          "Insolis": "src/"
+        }
+    }
+}

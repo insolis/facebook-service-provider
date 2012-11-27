@@ -1,4 +1,6 @@
 facebook-service-provider
 =========================
 
-Lighweight service to ease communication with facebook
+Lighweight Silex service to ease communication with facebook
+
+Doc is to-be-done.
