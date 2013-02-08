@@ -32,7 +32,7 @@ class FacebookServiceProvider implements ServiceProviderInterface
                 $app["monolog"]->addInfo("ezt kaptuk a fbtol", $data);
                 $request->request->set("fbdata", $data);
             }
-        });
+        }, 1);
 
     }
 }
