@@ -24,6 +24,11 @@ class FacebookServiceProvider implements ServiceProviderInterface
                 $request->request->set("fbdata", $data);
 
                 $app["fb"]->isPageLiked(); //sessionbe mentes
+
+                if (isset($data["oauth_token"])) {
+                    $app["session"]->set("access_token", $data["oauth_token"]);
+                }
+
             }
 
             if ($request->get("_route") === $app["fb.options"]["redirect_route"] && $request->query->has("code")) {
