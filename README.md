@@ -41,43 +41,51 @@ In both cases the event `fb.user_info` is dispatched, with the user data as the 
 
 A sample application-level `before` middleware to log a user in automatically:
 
-    $app->before(function (Request $request) use ($app) {
-        if ($request->request->has("fbdata")) {
-            $data = $request->request->get("fbdata");
+```php
+<?php
 
-            if (isset($data["user_id"])) {
-                $app["session"]->set("user_id", $data["user_id"]);
-            }
-        }
+$app->before(function (Request $request) use ($app) {
+    if ($request->request->has("fbdata")) {
+        $data = $request->request->get("fbdata");
 
-        $route = $request->get("_route");
-        if (
-            !$app["session"]->has("user_id") &&
-            !in_array($request->get("_route"), array("homepage", "fb_addhandler"))
-        ) {
-            return new Response("<script type='text/javascript'>top.location = '" . $app["fb"]->getAuthorizationUrl() . "';</script>");
+        if (isset($data["user_id"])) {
+            $app["session"]->set("user_id", $data["user_id"]);
         }
-    });
+    }
+
+    $route = $request->get("_route");
+    if (
+        !$app["session"]->has("user_id") &&
+        !in_array($request->get("_route"), array("homepage", "fb_addhandler"))
+    ) {
+        return new Response("<script type='text/javascript'>top.location = '" . $app["fb"]->getAuthorizationUrl() . "';</script>");
+    }
+});
+```
 
 A sample redirect route to handle new user authentications:
 
-    $app->post("/fb_addhandler", function (Request $request) use ($app) {
-        if (!$request->request->has("fbdata")) {
-            return $app->redirect($app["url_generator"]->generate("homepage"));
-        }
+```php
+<?php
 
-        $data = $request->request->get("fbdata");
-
-        try {
-            $app["db.user"]->insert(array(
-                "id"    =>  $data["id"],
-            ));
-        }
-        catch (\Exception $e) {
-            //this is not the user's first time enabling the app
-        }
-
-        $app["session"]->set("user_id", $data["id"]);
-
+$app->post("/fb_addhandler", function (Request $request) use ($app) {
+    if (!$request->request->has("fbdata")) {
         return $app->redirect($app["url_generator"]->generate("homepage"));
-    })->bind("fb_addhandler");
+    }
+
+    $data = $request->request->get("fbdata");
+
+    try {
+        $app["db.user"]->insert(array(
+            "id"    =>  $data["id"],
+        ));
+    }
+    catch (\Exception $e) {
+        //this is not the user's first time enabling the app
+    }
+
+    $app["session"]->set("user_id", $data["id"]);
+
+    return $app->redirect($app["url_generator"]->generate("homepage"));
+})->bind("fb_addhandler");
+```
