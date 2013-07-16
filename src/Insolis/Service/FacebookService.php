@@ -26,12 +26,12 @@ class FacebookService
     }
 
     /**
-    * Verifies a signature of a signed request
+    * Verifies the signature of the signed_request
     *
     * @return boolean
     *
-    * @throws BadFunctionCallException when there's no signed_request parameter
-    * @throws UnexpectedValueException when the algorithm is not hmac-sha256
+    * @throws \BadFunctionCallException when there's no signed_request parameter
+    * @throws \UnexpectedValueException when the algorithm is not hmac-sha256
     */
     public function isSignedRequestValid() {
         if (!($signed_request = $this->app["request"]->get("signed_request"))) {
@@ -84,7 +84,7 @@ class FacebookService
     }
 
     /**
-    * Returns the url that can be used to get an access token from a code (right after auth)
+    * Returns the url that can be used to get an access token from a code (durig user authorization)
     *
     * @return string
     */
@@ -115,9 +115,9 @@ class FacebookService
     /**
      * Gets the user's album ID that has the given name
      *
-     * @param   string  the album's name
+     * @param string $album_name the album's name
      *
-     * @return  mixed   bool(false) if not found, ID otherwise
+     * @return mixed false if not found, ID otherwise
      */
     public function getAlbumId($album_name) {
         $access_token = $this->app["session"]->get("access_token");
@@ -136,9 +136,9 @@ class FacebookService
     /**
      * Creates a new photo album
      *
-     * @param   string  the album's name
+     * @param string $album_name the album's name
      *
-     * @return  id      the album's id
+     * @return int the album's id
      */
     public function createAlbum($album_name) {
         $access_token = $this->app["session"]->get("access_token");
@@ -157,10 +157,13 @@ class FacebookService
     }
 
     /**
+     * Uploads a picture to the given album
      *
-     * @param type $album_id
-     * @param type $filename
-     * @param type $message
+     * @param int $album_id
+     * @param string $filename
+     * @param string $message
+     *
+     * @return mixed the data returned by facebook
      */
     public function uploadPicture($album_id, $filename, $message = null) {
         $access_token = $this->app["session"]->get("access_token");
@@ -181,7 +184,9 @@ class FacebookService
     }
 
     /**
+     * Returns the ID of the needed album, creates it if it's neccessary
      *
+     * @return int
      */
     public function getOrCreateAlbum($album_name) {
         $aid = $this->getAlbumId($album_name);
@@ -194,7 +199,7 @@ class FacebookService
     }
 
     /**
-     *
+     * Returns if the current page is liked. Also saves it to the session for later retrieval.
      */
     public function isPageLiked() {
         $session = $this->app["session"]; /* @var $session \Symfony\Component\HttpFoundation\Session\Session */
@@ -202,13 +207,13 @@ class FacebookService
         try {
             $data = $this->decodeSignedRequest();
             $liked = isset($data["page"]["liked"]) && $data["page"]["liked"];
-            $session->set("page_liked", $liked);
+            $session->set("fb.page_liked", $liked);
 
             return $liked;
         }
         catch (\Exception $e) {
-            if ($session->has("page_liked")) {
-                return $session->get("page_liked");
+            if ($session->has("fb.page_liked")) {
+                return $session->get("fb.page_liked");
             }
 
             return null;
@@ -216,7 +221,11 @@ class FacebookService
     }
 
     /**
+     * Gets the like count for a given url
+     *
      * @param string $url
+     *
+     * @return int
      */
     public function getLikeCount($url)
     {
@@ -233,11 +242,15 @@ class FacebookService
 
         if (!$items->length) return 0;
 
-        return $items->item(0)->nodeValue;
+        return (int) $items->item(0)->nodeValue;
     }
     
     /**
-    *
+    * Gets a long-loved access token from the current short-lived one
+     *
+     * @param string $existing_token
+     *
+     * @return string
     */
     public function getLongLivedAccessToken($existing_token)
     {
