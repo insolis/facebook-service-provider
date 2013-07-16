@@ -5,6 +5,7 @@ namespace Insolis\Provider;
 use Insolis\Service\FacebookService;
 use Silex\Application;
 use Silex\ServiceProviderInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\Request;
 
 class FacebookServiceProvider implements ServiceProviderInterface
@@ -20,13 +21,13 @@ class FacebookServiceProvider implements ServiceProviderInterface
             if ($request->request->has("signed_request") && $app["fb"]->isSignedRequestValid()) {
                 $data = $app["fb"]->decodeSignedRequest();
 
-                $app["monolog"]->addInfo("ezt kaptuk a fbtol", $data);
-                $request->request->set("fbdata", $data);
+                $app["dispatcher"]->dispatch("fb.user_info", new GenericEvent($data));
+                $request->request->set("fb.data", $data);
 
-                $app["fb"]->isPageLiked(); //sessionbe mentes
+                $app["fb"]->isPageLiked(); //to ensure it's saved into the session
 
                 if (isset($data["oauth_token"])) {
-                    $app["session"]->set("access_token", $data["oauth_token"]);
+                    $app["session"]->set("fb.access_token", $data["oauth_token"]);
                 }
 
             }
@@ -34,8 +35,8 @@ class FacebookServiceProvider implements ServiceProviderInterface
             if ($request->get("_route") === $app["fb.options"]["redirect_route"] && $request->query->has("code")) {
                 $data = $app["fb"]->getUserData();
 
-                $app["monolog"]->addInfo("ezt kaptuk a fbtol", $data);
-                $request->request->set("fbdata", $data);
+                $app["dispatcher"]->dispatch("fb.user_info", new GenericEvent($data));
+                $request->request->set("fb.data", $data);
             }
         }, 1);
 
