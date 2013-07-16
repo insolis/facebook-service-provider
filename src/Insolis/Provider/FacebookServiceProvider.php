@@ -10,13 +10,15 @@ use Symfony\Component\HttpFoundation\Request;
 
 class FacebookServiceProvider implements ServiceProviderInterface
 {
-    public function register(Application $app) {
-        $app["fb"] = $app->share(function() use ($app) {
+    public function register(Application $app)
+    {
+        $app["fb"] = $app->share(function () use ($app) {
             return new FacebookService($app["fb.options"], $app["request"], $app["url_generator"], $app["session"]);
         });
     }
 
-    public function boot(Application $app) {
+    public function boot(Application $app)
+    {
         $app->before(function (Request $request) use ($app) {
             if ($request->request->has("signed_request") && $app["fb"]->isSignedRequestValid()) {
                 $data = $app["fb"]->decodeSignedRequest();

@@ -23,32 +23,34 @@ class FacebookService
     /** @var Session */
     protected $session;
 
-    function __construct($config, Request $request, UrlGenerator $url_generator, Session $session) {
+    function __construct($config, Request $request, UrlGenerator $url_generator, Session $session)
+    {
         $this->app_id         = $config["app_id"];
         $this->app_secret     = $config["app_secret"];
         $this->permissions    = $config["permissions"];
         $this->redirect_route = $config["redirect_route"];
 
-        $this->request = $request;
+        $this->request       = $request;
         $this->url_generator = $url_generator;
-        $this->session = $session;
+        $this->session       = $session;
     }
 
     /**
-    * Verifies the signature of the signed_request
-    *
-    * @return boolean
-    *
-    * @throws \BadFunctionCallException when there's no signed_request parameter
-    * @throws \UnexpectedValueException when the algorithm is not hmac-sha256
-    */
-    public function isSignedRequestValid() {
+     * Verifies the signature of the signed_request
+     *
+     * @return boolean
+     *
+     * @throws \BadFunctionCallException when there's no signed_request parameter
+     * @throws \UnexpectedValueException when the algorithm is not hmac-sha256
+     */
+    public function isSignedRequestValid()
+    {
         if (!($signed_request = $this->request->request->get("signed_request"))) {
             throw new \BadFunctionCallException("Not a signed request");
         }
         list($encoded_sig, $payload) = explode('.', $signed_request, 2);
 
-        $sig = $this->base64_url_decode($encoded_sig);
+        $sig  = $this->base64_url_decode($encoded_sig);
         $data = json_decode($this->base64_url_decode($payload), true);
 
         if (strtoupper($data['algorithm']) !== 'HMAC-SHA256') {
@@ -61,13 +63,14 @@ class FacebookService
     }
 
     /**
-    * Decodes the data in the signed_request and returns it
-    *
-    * @return array
-    *
-    * @throws \BadFunctionCallException when there's no signed_request parameter
-    */
-    public function decodeSignedRequest() {
+     * Decodes the data in the signed_request and returns it
+     *
+     * @return array
+     *
+     * @throws \BadFunctionCallException when there's no signed_request parameter
+     */
+    public function decodeSignedRequest()
+    {
         if (!($signed_request = $this->request->request->get("signed_request"))) {
             throw new \BadFunctionCallException("Not a signed request");
         }
@@ -76,33 +79,36 @@ class FacebookService
         $data = json_decode($this->base64_url_decode($payload), true);
 
         unset($data["algorithm"]);
+
         return $data;
     }
 
     /**
-    * Returns the authorization url neccessary for the required permissions
-    *
-    * @return string
-    */
-    public function getAuthorizationUrl() {
+     * Returns the authorization url neccessary for the required permissions
+     *
+     * @return string
+     */
+    public function getAuthorizationUrl()
+    {
         return "https://www.facebook.com/dialog/oauth?" . http_build_query(array(
-            "client_id"     =>  $this->app_id,
-            "redirect_uri"  =>  $this->url_generator->generate($this->redirect_route, array(), true),
-            "scope"         =>  implode(",", $this->permissions),
+            "client_id"    => $this->app_id,
+            "redirect_uri" => $this->url_generator->generate($this->redirect_route, array(), true),
+            "scope"        => implode(",", $this->permissions),
         ));
     }
 
     /**
-    * Returns the url that can be used to get an access token from a code (durig user authorization)
-    *
-    * @return string
-    */
-    public function getTokenUrl() {
+     * Returns the url that can be used to get an access token from a code (durig user authorization)
+     *
+     * @return string
+     */
+    public function getTokenUrl()
+    {
         return "https://graph.facebook.com/oauth/access_token?" . http_build_query(array(
-            "client_id"     =>  $this->app_id,
-            "redirect_uri"  =>  $this->url_generator->generate($this->redirect_route, array(), true),
-            "client_secret" =>  $this->app_secret,
-            "code"          =>  $this->request->get("code"),
+            "client_id"     => $this->app_id,
+            "redirect_uri"  => $this->url_generator->generate($this->redirect_route, array(), true),
+            "client_secret" => $this->app_secret,
+            "code"          => $this->request->get("code"),
         ));
     }
 
@@ -111,7 +117,8 @@ class FacebookService
      *
      * @return array user data
      */
-    public function getUserData() {
+    public function getUserData()
+    {
         $token_url = $this->getTokenUrl();
 
         $params = array();
@@ -119,6 +126,7 @@ class FacebookService
         $this->session->set("fb.access_token", $params["access_token"]);
 
         $graph_url = "https://graph.facebook.com/me?access_token=" . $params["access_token"];
+
         return json_decode(file_get_contents($graph_url), true);
     }
 
@@ -129,12 +137,13 @@ class FacebookService
      *
      * @return mixed false if not found, ID otherwise
      */
-    public function getAlbumId($album_name) {
+    public function getAlbumId($album_name)
+    {
         $access_token = $this->session->get("fb.access_token");
 
         $albums = json_decode(file_get_contents("https://graph.facebook.com/me/albums?access_token=" . $access_token), true);
 
-        foreach($albums["data"] as $album) {
+        foreach ($albums["data"] as $album) {
             if ($album["name"] === $album_name) {
                 return $album["id"];
             }
@@ -150,12 +159,13 @@ class FacebookService
      *
      * @return int the album's id
      */
-    public function createAlbum($album_name) {
+    public function createAlbum($album_name)
+    {
         $access_token = $this->session->get("fb.access_token");
 
         $context = stream_context_create(array(
             "http" => array(
-                "method" => "POST",
+                "method"  => "POST",
                 "content" => http_build_query(array(
                     "name" => $album_name,
                 )),
@@ -175,18 +185,19 @@ class FacebookService
      *
      * @return mixed the data returned by facebook
      */
-    public function uploadPicture($album_id, $filename, $message = null) {
+    public function uploadPicture($album_id, $filename, $message = null)
+    {
         $access_token = $this->session->get("fb.access_token");
 
         $ch = curl_init();
         curl_setopt_array($ch, array(
-            CURLOPT_POST            =>  true,
-            CURLOPT_RETURNTRANSFER  =>  true,
-            CURLOPT_POSTFIELDS      => array(
-                "source"    =>  "@{$filename}",
-                "message"   =>  $message,
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POSTFIELDS     => array(
+                "source"  => "@{$filename}",
+                "message" => $message,
             ),
-            CURLOPT_URL             =>  "https://graph.facebook.com/{$album_id}/photos?access_token={$access_token}",
+            CURLOPT_URL            => "https://graph.facebook.com/{$album_id}/photos?access_token={$access_token}",
         ));
         $data = curl_exec($ch);
 
@@ -200,7 +211,8 @@ class FacebookService
      *
      * @return int
      */
-    public function getOrCreateAlbum($album_name) {
+    public function getOrCreateAlbum($album_name)
+    {
         $aid = $this->getAlbumId($album_name);
 
         if (false === $aid) {
@@ -215,15 +227,15 @@ class FacebookService
      *
      * @return bool
      */
-    public function isPageLiked() {
+    public function isPageLiked()
+    {
         try {
-            $data = $this->decodeSignedRequest();
+            $data  = $this->decodeSignedRequest();
             $liked = isset($data["page"]["liked"]) && $data["page"]["liked"];
             $this->session->set("fb.page_liked", $liked);
 
             return $liked;
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             return $this->session->get("fb.page_liked");
         }
     }
@@ -238,8 +250,8 @@ class FacebookService
     public function getLikeCount($url)
     {
         $link = "https://api.facebook.com/method/fql.query?" . http_build_query(array(
-            "query" => "SELECT url, normalized_url, share_count, like_count, comment_count, total_count, commentsbox_count, comments_fbid, click_count FROM link_stat WHERE url=\"" . urlencode($url) . "\"",
-        ));
+                "query" => "SELECT url, normalized_url, share_count, like_count, comment_count, total_count, commentsbox_count, comments_fbid, click_count FROM link_stat WHERE url=\"" . urlencode($url) . "\"",
+            ));
 
         $response = file_get_contents($link);
 
@@ -250,37 +262,38 @@ class FacebookService
 
         if (!$items->length) return 0;
 
-        return (int) $items->item(0)->nodeValue;
+        return (int)$items->item(0)->nodeValue;
     }
-    
+
     /**
-    * Gets a long-loved access token from the current short-lived one
+     * Gets a long-loved access token from the current short-lived one
      *
      * @param string $existing_token
      *
      * @return string
-    */
+     */
     public function getLongLivedAccessToken($existing_token)
     {
-        $url = sprintf("https://graph.facebook.com/oauth/access_token?client_id=%s&client_secret=%s&"
-                   . "grant_type=fb_exchange_token&fb_exchange_token=%s",
-                   $this->app_id,
-                   $this->app_secret,
-                   $existing_token
-               );
+        $url      = sprintf("https://graph.facebook.com/oauth/access_token?client_id=%s&client_secret=%s&"
+            . "grant_type=fb_exchange_token&fb_exchange_token=%s",
+            $this->app_id,
+            $this->app_secret,
+            $existing_token
+        );
         $contents = file_get_contents($url);
         parse_str($contents, $output);
-        
+
         return $output["access_token"];
     }
 
     /**
-    * base64_url decodes a string
-    *
-    * @param string $input
-    * @return string
-    */
-    protected function base64_url_decode($input) {
+     * base64_url decodes a string
+     *
+     * @param string $input
+     * @return string
+     */
+    protected function base64_url_decode($input)
+    {
         return base64_decode(strtr($input, '-_', '+/'));
     }
 }
