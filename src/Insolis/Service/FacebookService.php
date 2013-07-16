@@ -4,21 +4,34 @@ namespace Insolis\Service;
 
 use Silex\Application;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 
 class FacebookService
 {
-    protected $app;
     protected $app_id;
     protected $app_secret;
     protected $permissions;
     protected $redirect_route;
 
-    function __construct($config, Application $app) {
-        $this->app            = $app;
+    /** @var Request */
+    protected $request;
+
+    /** @var UrlGenerator */
+    protected $url_generator;
+
+    /** @var Session */
+    protected $session;
+
+    function __construct($config, Request $request, UrlGenerator $url_generator, Session $session) {
         $this->app_id         = $config["app_id"];
         $this->app_secret     = $config["app_secret"];
         $this->permissions    = $config["permissions"];
         $this->redirect_route = $config["redirect_route"];
+
+        $this->request = $request;
+        $this->url_generator = $url_generator;
+        $this->session = $session;
     }
 
     /**
@@ -30,13 +43,13 @@ class FacebookService
     * @throws \UnexpectedValueException when the algorithm is not hmac-sha256
     */
     public function isSignedRequestValid() {
-        if (!($signed_request = $this->app["request"]->get("signed_request"))) {
+        if (!($signed_request = $this->request->request->get("signed_request"))) {
             throw new \BadFunctionCallException("Not a signed request");
         }
         list($encoded_sig, $payload) = explode('.', $signed_request, 2);
 
-        $sig = self::base64_url_decode($encoded_sig);
-        $data = json_decode(self::base64_url_decode($payload), true);
+        $sig = $this->base64_url_decode($encoded_sig);
+        $data = json_decode($this->base64_url_decode($payload), true);
 
         if (strtoupper($data['algorithm']) !== 'HMAC-SHA256') {
             throw new \UnexpectedValueException("Unknown algorithm. Expected HMAC-SHA256");
@@ -44,7 +57,7 @@ class FacebookService
 
         $expected_sig = hash_hmac('sha256', $payload, $this->app_secret, $raw = true);
 
-        return $sig == $expected_sig;
+        return $sig === $expected_sig;
     }
 
     /**
@@ -55,12 +68,12 @@ class FacebookService
     * @throws \BadFunctionCallException when there's no signed_request parameter
     */
     public function decodeSignedRequest() {
-        if (!($signed_request = $this->app["request"]->get("signed_request"))) {
+        if (!($signed_request = $this->request->request->get("signed_request"))) {
             throw new \BadFunctionCallException("Not a signed request");
         }
         list(, $payload) = explode('.', $signed_request, 2);
 
-        $data = json_decode(self::base64_url_decode($payload), true);
+        $data = json_decode($this->base64_url_decode($payload), true);
 
         unset($data["algorithm"]);
         return $data;
@@ -74,7 +87,7 @@ class FacebookService
     public function getAuthorizationUrl() {
         return "https://www.facebook.com/dialog/oauth?" . http_build_query(array(
             "client_id"     =>  $this->app_id,
-            "redirect_uri"  =>  $this->app["url_generator"]->generate($this->redirect_route, array(), true),
+            "redirect_uri"  =>  $this->url_generator->generate($this->redirect_route, array(), true),
             "scope"         =>  implode(",", $this->permissions),
         ));
     }
@@ -87,9 +100,9 @@ class FacebookService
     public function getTokenUrl() {
         return "https://graph.facebook.com/oauth/access_token?" . http_build_query(array(
             "client_id"     =>  $this->app_id,
-            "redirect_uri"  =>  $this->app["url_generator"]->generate($this->redirect_route, array(), true),
+            "redirect_uri"  =>  $this->url_generator->generate($this->redirect_route, array(), true),
             "client_secret" =>  $this->app_secret,
-            "code"          =>  $this->app["request"]->get("code"),
+            "code"          =>  $this->request->get("code"),
         ));
     }
 
@@ -100,9 +113,10 @@ class FacebookService
      */
     public function getUserData() {
         $token_url = $this->getTokenUrl();
+
         $params = array();
         parse_str(file_get_contents($token_url), $params);
-        $this->app["session"]->set("access_token", $params["access_token"]);
+        $this->session->set("fb.access_token", $params["access_token"]);
 
         $graph_url = "https://graph.facebook.com/me?access_token=" . $params["access_token"];
         return json_decode(file_get_contents($graph_url), true);
@@ -116,7 +130,7 @@ class FacebookService
      * @return mixed false if not found, ID otherwise
      */
     public function getAlbumId($album_name) {
-        $access_token = $this->app["session"]->get("access_token");
+        $access_token = $this->session->get("fb.access_token");
 
         $albums = json_decode(file_get_contents("https://graph.facebook.com/me/albums?access_token=" . $access_token), true);
 
@@ -137,7 +151,7 @@ class FacebookService
      * @return int the album's id
      */
     public function createAlbum($album_name) {
-        $access_token = $this->app["session"]->get("access_token");
+        $access_token = $this->session->get("fb.access_token");
 
         $context = stream_context_create(array(
             "http" => array(
@@ -162,7 +176,7 @@ class FacebookService
      * @return mixed the data returned by facebook
      */
     public function uploadPicture($album_id, $filename, $message = null) {
-        $access_token = $this->app["session"]->get("access_token");
+        $access_token = $this->session->get("fb.access_token");
 
         $ch = curl_init();
         curl_setopt_array($ch, array(
@@ -182,6 +196,8 @@ class FacebookService
     /**
      * Returns the ID of the needed album, creates it if it's neccessary
      *
+     * @param string $album_name
+     *
      * @return int
      */
     public function getOrCreateAlbum($album_name) {
@@ -196,23 +212,19 @@ class FacebookService
 
     /**
      * Returns if the current page is liked. Also saves it to the session for later retrieval.
+     *
+     * @return bool
      */
     public function isPageLiked() {
-        $session = $this->app["session"]; /* @var $session \Symfony\Component\HttpFoundation\Session\Session */
-
         try {
             $data = $this->decodeSignedRequest();
             $liked = isset($data["page"]["liked"]) && $data["page"]["liked"];
-            $session->set("fb.page_liked", $liked);
+            $this->session->set("fb.page_liked", $liked);
 
             return $liked;
         }
         catch (\Exception $e) {
-            if ($session->has("fb.page_liked")) {
-                return $session->get("fb.page_liked");
-            }
-
-            return null;
+            return $this->session->get("fb.page_liked");
         }
     }
 
@@ -268,7 +280,7 @@ class FacebookService
     * @param string $input
     * @return string
     */
-    protected static function base64_url_decode($input) {
+    protected function base64_url_decode($input) {
         return base64_decode(strtr($input, '-_', '+/'));
     }
 }

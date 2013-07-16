@@ -12,7 +12,7 @@ class FacebookServiceProvider implements ServiceProviderInterface
 {
     public function register(Application $app) {
         $app["fb"] = $app->share(function() use ($app) {
-            return new FacebookService($app["fb.options"], $app);
+            return new FacebookService($app["fb.options"], $app["request"], $app["url_generator"], $app["session"]);
         });
     }
 
