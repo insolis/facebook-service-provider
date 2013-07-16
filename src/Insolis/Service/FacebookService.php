@@ -10,8 +10,6 @@ class FacebookService
     protected $app;
     protected $app_id;
     protected $app_secret;
-    protected $app_url;
-    protected $canvas_url;
     protected $permissions;
     protected $redirect_route;
 
@@ -19,8 +17,6 @@ class FacebookService
         $this->app            = $app;
         $this->app_id         = $config["app_id"];
         $this->app_secret     = $config["app_secret"];
-        $this->app_url        = $config["app_url"];
-        $this->canvas_url     = $config["canvas_url"];
         $this->permissions    = $config["permissions"];
         $this->redirect_route = $config["redirect_route"];
     }
