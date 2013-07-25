@@ -3,6 +3,7 @@
 namespace Insolis\Service;
 
 use Silex\Application;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\Routing\Generator\UrlGenerator;
@@ -22,6 +23,9 @@ class FacebookService
 
     /** @var Session */
     protected $session;
+
+    /** @var EventDispatcher */
+    protected $dispatcher;
 
     function __construct($config, Request $request, UrlGenerator $url_generator, Session $session)
     {
@@ -232,6 +236,16 @@ class FacebookService
         try {
             $data  = $this->decodeSignedRequest();
             $liked = isset($data["page"]["liked"]) && $data["page"]["liked"];
+
+            // if we get a liked value and it's not the same as the one in the session
+            if (isset($data["page"]["liked"]) && $this->session->has("fb.page_liked") && $this->session->get("fb.page_liked") != $data["page"]["liked"]) {
+                if ($data["page"]["liked"]) {
+                    $this->dispatcher->dispatch("fb.like");
+                } else {
+                    $this->dispatcher->dispatch("fb.unlike");
+                }
+            }
+
             $this->session->set("fb.page_liked", $liked);
 
             return $liked;

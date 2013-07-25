@@ -37,7 +37,13 @@ A `before()` middleware is registered to be run before yours. It handles two cas
 
 In both cases the event `fb.user_info` is dispatched, with the user data as the subject.
 
-### Samples
+## Events
+
+- `fb.user_info` when getting user data from facebook
+- `fb.like` when the user just liked the page
+- `fb.unlike` when the user just unliked the page
+
+## Samples
 
 A sample application-level `before` middleware to log a user in automatically:
 
