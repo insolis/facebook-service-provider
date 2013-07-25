@@ -3,10 +3,10 @@
 namespace Insolis\Service;
 
 use Silex\Application;
-use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\Routing\Generator\UrlGenerator;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class FacebookService
 {
@@ -18,16 +18,16 @@ class FacebookService
     /** @var Request */
     protected $request;
 
-    /** @var UrlGenerator */
+    /** @var UrlGeneratorInterface */
     protected $url_generator;
 
-    /** @var Session */
+    /** @var SessionInterface */
     protected $session;
 
-    /** @var EventDispatcher */
+    /** @var EventDispatcherInterface */
     protected $dispatcher;
 
-    function __construct($config, Request $request, UrlGenerator $url_generator, Session $session, EventDispatcher $dispatcher)
+    function __construct($config, Request $request, UrlGeneratorInterface $url_generator, SessionInterface $session, EventDispatcherInterface $dispatcher)
     {
         $this->app_id         = $config["app_id"];
         $this->app_secret     = $config["app_secret"];
