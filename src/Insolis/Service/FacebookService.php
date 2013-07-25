@@ -27,7 +27,7 @@ class FacebookService
     /** @var EventDispatcher */
     protected $dispatcher;
 
-    function __construct($config, Request $request, UrlGenerator $url_generator, Session $session)
+    function __construct($config, Request $request, UrlGenerator $url_generator, Session $session, EventDispatcher $dispatcher)
     {
         $this->app_id         = $config["app_id"];
         $this->app_secret     = $config["app_secret"];
@@ -37,6 +37,7 @@ class FacebookService
         $this->request       = $request;
         $this->url_generator = $url_generator;
         $this->session       = $session;
+        $this->dispatcher    = $dispatcher;
     }
 
     /**
