@@ -26,12 +26,7 @@ class FacebookServiceProvider implements ServiceProviderInterface
                 $app["dispatcher"]->dispatch("fb.user_info", new GenericEvent($data));
                 $request->request->set("fb.data", $data);
 
-                $app["fb"]->isPageLiked(); //to ensure it's saved into the session
-
-                if (isset($data["oauth_token"])) {
-                    $app["session"]->set("fb.access_token", $data["oauth_token"]);
-                }
-
+                $app["fb"]->saveDataFromSignedRequestToSession();
             }
 
             if ($request->get("_route") === $app["fb.options"]["redirect_route"] && $request->query->has("code")) {

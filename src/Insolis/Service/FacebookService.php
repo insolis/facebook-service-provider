@@ -228,31 +228,13 @@ class FacebookService
     }
 
     /**
-     * Returns if the current page is liked. Also saves it to the session for later retrieval.
+     * Returns if the current page is liked.
      *
      * @return bool
      */
     public function isPageLiked()
     {
-        try {
-            $data  = $this->decodeSignedRequest();
-            $liked = isset($data["page"]["liked"]) && $data["page"]["liked"];
-
-            // if we get a liked value and it's not the same as the one in the session
-            if (isset($data["page"]["liked"]) && $this->session->has("fb.page_liked") && $this->session->get("fb.page_liked") != $data["page"]["liked"]) {
-                if ($data["page"]["liked"]) {
-                    $this->dispatcher->dispatch("fb.like");
-                } else {
-                    $this->dispatcher->dispatch("fb.unlike");
-                }
-            }
-
-            $this->session->set("fb.page_liked", $liked);
-
-            return $liked;
-        } catch (\Exception $e) {
-            return $this->session->get("fb.page_liked");
-        }
+        return $this->session->get("fb.page_liked", false);
     }
 
     /**
@@ -299,6 +281,33 @@ class FacebookService
         parse_str($contents, $output);
 
         return $output["access_token"];
+    }
+
+    /**
+     * Saves data to session from the signed request for later retrieval
+     */
+    public function saveDataFromSignedRequestToSession()
+    {
+        $data  = $this->session->get("fb.data");
+
+        if (isset($data["oauth_token"])) {
+            $this->session->set("fb.access_token", $data["oauth_token"]);
+            $this->session->set("fb.access_token_expires", $data["expires"]);
+        }
+
+        if (isset($data["page"])) {
+            if ($this->session->has("fb.page_liked") && $this->session->get("fb.page_liked") != $data["page"]["liked"]) {
+                if ($data["page"]["liked"]) {
+                    $this->dispatcher->dispatch("fb.like");
+                } else {
+                    $this->dispatcher->dispatch("fb.unlike");
+                }
+            }
+
+            $this->session->set("fb.page_liked", $data["page"]["liked"]);
+            $this->session->set("fb.page_id",    $data["page"]["id"]);
+            $this->session->set("fb.page_admin", $data["page"]["admin"]);
+        }
     }
 
     /**
