@@ -288,7 +288,7 @@ class FacebookService
      */
     public function saveDataFromSignedRequestToSession()
     {
-        $data  = $this->session->get("fb.data");
+        $data = $this->request->get("fb.data");
 
         if (isset($data["oauth_token"])) {
             $this->session->set("fb.access_token", $data["oauth_token"]);
