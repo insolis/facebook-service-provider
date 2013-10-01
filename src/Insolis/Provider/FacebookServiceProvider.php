@@ -13,6 +13,14 @@ class FacebookServiceProvider implements ServiceProviderInterface
     public function register(Application $app)
     {
         $app["fb"] = $app->share(function () use ($app) {
+            if (!isset($app["session"])) {
+                throw new \RuntimeException("FacebookService needs the SessionService to be registered.");
+            }
+
+            if (!isset($app["url_generator"])) {
+                throw new \RuntimeException("FacebookService needs the UrlGeneratorService to be registered.");
+            }
+
             return new FacebookService($app["fb.options"], $app["request"], $app["url_generator"], $app["session"], $app["dispatcher"]);
         });
     }
