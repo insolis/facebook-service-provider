@@ -311,6 +311,56 @@ class FacebookService
     }
 
     /**
+     * Sends a Facebook notification to the user
+     *
+     * @param int $user_id the user's id
+     * @param string $text the text to be sent
+     * @param string|null $href optional href to be appended to the URL when the user clicks on the notif
+     *
+     * @throws \InvalidArgumentException when the text is too long
+     * @return array response of the Graph API
+     *
+     * @see http://developers.facebook.com/docs/games/notifications/
+     */
+    public function sendNotification($user_id, $text, $href = null)
+    {
+        if (mb_strlen($text) > 180) {
+            throw new \InvalidArgumentException("The message cannot be longer than 180 characters.");
+        }
+
+        $apprequest_url ="https://graph.facebook.com/" . $user_id .
+            "/notifications?" . http_build_query(array(
+                "template"      => $text,
+                "access_token"  => $this->getAppAccessToken(),
+                "href"          =>  $href,
+                "method"        => "post",
+            ));
+
+        return json_decode(file_get_contents($apprequest_url), true);
+    }
+
+    /**
+     * Gets the application access token from Facebook
+     *
+     * @return mixed
+     */
+    public function getAppAccessToken()
+    {
+        static $token = null;
+
+        if (!$token) {
+            $token_url = "https://graph.facebook.com/oauth/access_token?" .
+                "client_id=" . $this->app_id .
+                "&client_secret=" . $this->app_secret .
+                "&grant_type=client_credentials";
+
+            $token = str_replace("access_token=", "", file_get_contents($token_url));
+        }
+
+        return $token;
+    }
+
+    /**
      * base64_url decodes a string
      *
      * @param string $input
