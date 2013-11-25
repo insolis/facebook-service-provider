@@ -361,6 +361,32 @@ class FacebookService
     }
 
     /**
+     * Gets the current users friends
+     *
+     * @param $limit int
+     * @param $offset int
+     *
+     * @return array
+     * @throws \BadMethodCallException when there's no access_token saved in the session
+     */
+    public function getFriends($limit = 5000, $offset = 0)
+    {
+        if (!$this->session->has("fb.access_token")) {
+            throw new \BadMethodCallException("getFriends() needs an access token");
+        }
+
+        $url = "https://graph.facebook.com/me/friends?" . http_build_query([
+                "limit"         =>  $limit,
+                "offset"        =>  $offset,
+                "access_token"  =>  $this->session->get("access_token"),
+        ]);
+
+        $data = json_decode(file_get_contents($url), true);
+
+        return $data["data"];
+    }
+
+    /**
      * base64_url decodes a string
      *
      * @param string $input
