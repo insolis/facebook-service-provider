@@ -16,7 +16,7 @@ class FacebookService
     protected $redirect_route;
 
     /** @var Request */
-    protected $request;
+    protected $request = null;
 
     /** @var UrlGeneratorInterface */
     protected $url_generator;
@@ -27,14 +27,17 @@ class FacebookService
     /** @var EventDispatcherInterface */
     protected $dispatcher;
 
-    function __construct($config, Request $request, UrlGeneratorInterface $url_generator, SessionInterface $session, EventDispatcherInterface $dispatcher)
+    /** @var Application */
+    protected $app;
+
+    function __construct($config, UrlGeneratorInterface $url_generator, SessionInterface $session, EventDispatcherInterface $dispatcher, Application $app)
     {
         $this->app_id         = $config["app_id"];
         $this->app_secret     = $config["app_secret"];
         $this->permissions    = $config["permissions"];
         $this->redirect_route = $config["redirect_route"];
 
-        $this->request       = $request;
+        $this->app           = $app;
         $this->url_generator = $url_generator;
         $this->session       = $session;
         $this->dispatcher    = $dispatcher;
@@ -50,7 +53,7 @@ class FacebookService
      */
     public function isSignedRequestValid()
     {
-        if (!($signed_request = $this->request->request->get("signed_request"))) {
+        if (!($signed_request = $this->getRequest()->request->get("signed_request"))) {
             throw new \BadFunctionCallException("Not a signed request");
         }
         list($encoded_sig, $payload) = explode('.', $signed_request, 2);
@@ -76,7 +79,7 @@ class FacebookService
      */
     public function decodeSignedRequest()
     {
-        if (!($signed_request = $this->request->request->get("signed_request"))) {
+        if (!($signed_request = $this->getRequest()->request->get("signed_request"))) {
             throw new \BadFunctionCallException("Not a signed request");
         }
         list(, $payload) = explode('.', $signed_request, 2);
@@ -113,7 +116,7 @@ class FacebookService
             "client_id"     => $this->app_id,
             "redirect_uri"  => $this->url_generator->generate($this->redirect_route, array(), true),
             "client_secret" => $this->app_secret,
-            "code"          => $this->request->get("code"),
+            "code"          => $this->getRequest()->get("code"),
         ));
     }
 
@@ -288,7 +291,7 @@ class FacebookService
      */
     public function saveDataFromSignedRequestToSession()
     {
-        $data = $this->request->get("fb.data");
+        $data = $this->getRequest()->get("fb.data");
 
         if (isset($data["oauth_token"])) {
             $this->session->set("fb.access_token", $data["oauth_token"]);
@@ -395,5 +398,14 @@ class FacebookService
     protected function base64_url_decode($input)
     {
         return base64_decode(strtr($input, '-_', '+/'));
+    }
+
+    protected function getRequest()
+    {
+        if (!$this->request) {
+            $this->request = $this->app["request"];
+        }
+
+        return $this->request;
     }
 }

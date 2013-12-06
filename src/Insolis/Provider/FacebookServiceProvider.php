@@ -21,7 +21,7 @@ class FacebookServiceProvider implements ServiceProviderInterface
                 throw new \RuntimeException("FacebookService needs the UrlGeneratorService to be registered.");
             }
 
-            return new FacebookService($app["fb.options"], $app["request"], $app["url_generator"], $app["session"], $app["dispatcher"]);
+            return new FacebookService($app["fb.options"],$app["url_generator"], $app["session"], $app["dispatcher"], $app);
         });
     }
 
