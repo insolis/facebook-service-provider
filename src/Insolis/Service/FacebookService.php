@@ -160,7 +160,7 @@ class FacebookService
      */
     public function getAlbumId($album_name)
     {
-        $access_token = $this->session->get(static::ACCESS_TOKEN_KEY);
+        $access_token = $this->getAccessToken();
 
         $albums = json_decode(file_get_contents("https://graph.facebook.com/me/albums?access_token=" . $access_token), true);
 
@@ -182,7 +182,7 @@ class FacebookService
      */
     public function createAlbum($album_name)
     {
-        $access_token = $this->session->get(static::ACCESS_TOKEN_KEY);
+        $access_token = $this->getAccessToken();
 
         $context = stream_context_create(array(
             "http" => array(
@@ -208,7 +208,7 @@ class FacebookService
      */
     public function uploadPicture($album_id, $filename, $message = null)
     {
-        $access_token = $this->session->get(static::ACCESS_TOKEN_KEY);
+        $access_token = $this->getAccessToken();
 
         $ch = curl_init();
         curl_setopt_array($ch, array(
@@ -387,19 +387,29 @@ class FacebookService
      */
     public function getFriends($limit = 5000, $offset = 0)
     {
-        if (!$this->session->has(static::ACCESS_TOKEN_KEY)) {
+        if (!$this->getAccessToken()) {
             throw new \BadMethodCallException("getFriends() needs an access token");
         }
 
         $url = "https://graph.facebook.com/me/friends?" . http_build_query([
                 "limit"         =>  $limit,
                 "offset"        =>  $offset,
-                "access_token"  =>  $this->session->get(static::ACCESS_TOKEN_KEY),
+                "access_token"  =>  $this->getAccessToken(),
         ]);
 
         $data = json_decode(file_get_contents($url), true);
 
         return $data["data"];
+    }
+
+    /**
+     * Returns the current access token
+     *
+     * @return null|string
+     */
+    public function getAccessToken()
+    {
+        return $this->session->get(static::ACCESS_TOKEN_KEY);
     }
 
     /**
