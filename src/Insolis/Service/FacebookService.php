@@ -10,6 +10,19 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class FacebookService
 {
+    const ACCESS_TOKEN_KEY          = "fb.access_token";
+    const ACCESS_TOKEN_EXPIRES_KEY  = "fb.access_token_expires";
+
+    const DATA_KEY                  = "fb.data";
+
+    const PAGE_ADMIN_KEY            = "fb.page_admin";
+    const PAGE_ID_KEY               = "fb.page_id";
+    const PAGE_LIKED_KEY            = "fb.page_liked";
+
+    const EVENT_LIKE                = "fb.like";
+    const EVENT_UNLIKE              = "fb.unlike";
+    const EVENT_USER_INFO           = "fb.user_info";
+
     protected $app_id;
     protected $app_secret;
     protected $permissions;
@@ -131,7 +144,7 @@ class FacebookService
 
         $params = array();
         parse_str(file_get_contents($token_url), $params);
-        $this->session->set("fb.access_token", $params["access_token"]);
+        $this->session->set(static::ACCESS_TOKEN_KEY, $params["access_token"]);
 
         $graph_url = "https://graph.facebook.com/me?access_token=" . $params["access_token"];
 
@@ -147,7 +160,7 @@ class FacebookService
      */
     public function getAlbumId($album_name)
     {
-        $access_token = $this->session->get("fb.access_token");
+        $access_token = $this->session->get(static::ACCESS_TOKEN_KEY);
 
         $albums = json_decode(file_get_contents("https://graph.facebook.com/me/albums?access_token=" . $access_token), true);
 
@@ -169,7 +182,7 @@ class FacebookService
      */
     public function createAlbum($album_name)
     {
-        $access_token = $this->session->get("fb.access_token");
+        $access_token = $this->session->get(static::ACCESS_TOKEN_KEY);
 
         $context = stream_context_create(array(
             "http" => array(
@@ -195,7 +208,7 @@ class FacebookService
      */
     public function uploadPicture($album_id, $filename, $message = null)
     {
-        $access_token = $this->session->get("fb.access_token");
+        $access_token = $this->session->get(static::ACCESS_TOKEN_KEY);
 
         $ch = curl_init();
         curl_setopt_array($ch, array(
@@ -237,7 +250,7 @@ class FacebookService
      */
     public function isPageLiked()
     {
-        return $this->session->get("fb.page_liked", false);
+        return $this->session->get(static::PAGE_LIKED_KEY, false);
     }
 
     /**
@@ -294,22 +307,22 @@ class FacebookService
         $data = $this->getRequest()->get("fb.data");
 
         if (isset($data["oauth_token"])) {
-            $this->session->set("fb.access_token", $data["oauth_token"]);
-            $this->session->set("fb.access_token_expires", $data["expires"]);
+            $this->session->set(static::ACCESS_TOKEN_KEY, $data["oauth_token"]);
+            $this->session->set(static::ACCESS_TOKEN_EXPIRES_KEY, $data["expires"]);
         }
 
         if (isset($data["page"])) {
-            if ($this->session->has("fb.page_liked") && $this->session->get("fb.page_liked") != $data["page"]["liked"]) {
+            if ($this->session->has(static::PAGE_LIKED_KEY) && $this->session->get(static::PAGE_LIKED_KEY) != $data["page"]["liked"]) {
                 if ($data["page"]["liked"]) {
-                    $this->dispatcher->dispatch("fb.like");
+                    $this->dispatcher->dispatch(static::EVENT_LIKE);
                 } else {
-                    $this->dispatcher->dispatch("fb.unlike");
+                    $this->dispatcher->dispatch(static::EVENT_UNLIKE);
                 }
             }
 
-            $this->session->set("fb.page_liked", $data["page"]["liked"]);
-            $this->session->set("fb.page_id",    $data["page"]["id"]);
-            $this->session->set("fb.page_admin", $data["page"]["admin"]);
+            $this->session->set(static::PAGE_LIKED_KEY, $data["page"]["liked"]);
+            $this->session->set(static::PAGE_ID_KEY,    $data["page"]["id"]);
+            $this->session->set(static::PAGE_ADMIN_KEY, $data["page"]["admin"]);
         }
     }
 
@@ -374,14 +387,14 @@ class FacebookService
      */
     public function getFriends($limit = 5000, $offset = 0)
     {
-        if (!$this->session->has("fb.access_token")) {
+        if (!$this->session->has(static::ACCESS_TOKEN_KEY)) {
             throw new \BadMethodCallException("getFriends() needs an access token");
         }
 
         $url = "https://graph.facebook.com/me/friends?" . http_build_query([
                 "limit"         =>  $limit,
                 "offset"        =>  $offset,
-                "access_token"  =>  $this->session->get("access_token"),
+                "access_token"  =>  $this->session->get(static::ACCESS_TOKEN_KEY),
         ]);
 
         $data = json_decode(file_get_contents($url), true);

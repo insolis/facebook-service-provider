@@ -31,8 +31,8 @@ class FacebookServiceProvider implements ServiceProviderInterface
             if ($request->request->has("signed_request") && $app["fb"]->isSignedRequestValid()) {
                 $data = $app["fb"]->decodeSignedRequest();
 
-                $app["dispatcher"]->dispatch("fb.user_info", new GenericEvent($data));
-                $request->request->set("fb.data", $data);
+                $app["dispatcher"]->dispatch(FacebookService::EVENT_USER_INFO, new GenericEvent($data));
+                $request->request->set(FacebookService::DATA_KEY, $data);
 
                 $app["fb"]->saveDataFromSignedRequestToSession();
             }
@@ -40,10 +40,9 @@ class FacebookServiceProvider implements ServiceProviderInterface
             if ($request->get("_route") === $app["fb.options"]["redirect_route"] && $request->query->has("code")) {
                 $data = $app["fb"]->getUserData();
 
-                $app["dispatcher"]->dispatch("fb.user_info", new GenericEvent($data));
-                $request->request->set("fb.data", $data);
+                $app["dispatcher"]->dispatch(FacebookService::EVENT_USER_INFO, new GenericEvent($data));
+                $request->request->set(FacebookService::DATA_KEY, $data);
             }
         }, 1);
-
     }
 }
