@@ -332,25 +332,35 @@ class FacebookService
      * @param int $user_id the user's id
      * @param string $text the text to be sent
      * @param string|null $href optional href to be appended to the URL when the user clicks on the notif
+     * @param string|null $ref optional ref so you can distinguish between notifications in insights
      *
      * @throws \InvalidArgumentException when the text is too long
      * @return array response of the Graph API
      *
      * @see http://developers.facebook.com/docs/games/notifications/
      */
-    public function sendNotification($user_id, $text, $href = null)
+    public function sendNotification($user_id, $text, $href = null, $ref = null)
     {
         if (mb_strlen($text) > 180) {
             throw new \InvalidArgumentException("The message cannot be longer than 180 characters.");
         }
 
+        $query_data = array(
+            "template"      =>  $text,
+            "access_token"  =>  $this->getAppAccessToken(),
+            "method"        => "post",
+        );
+
+        if ($href) {
+            $query_data["href"] = $href;
+        }
+
+        if ($ref) {
+            $query_data["ref"] = $ref;
+        }
+
         $apprequest_url ="https://graph.facebook.com/" . $user_id .
-            "/notifications?" . http_build_query(array(
-                "template"      => $text,
-                "access_token"  => $this->getAppAccessToken(),
-                "href"          =>  $href,
-                "method"        => "post",
-            ));
+            "/notifications?" . http_build_query($query_data);
 
         return json_decode(@file_get_contents($apprequest_url), true);
     }
