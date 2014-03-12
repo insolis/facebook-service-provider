@@ -352,7 +352,7 @@ class FacebookService
                 "method"        => "post",
             ));
 
-        return json_decode(file_get_contents($apprequest_url), true);
+        return json_decode(@file_get_contents($apprequest_url), true);
     }
 
     /**
