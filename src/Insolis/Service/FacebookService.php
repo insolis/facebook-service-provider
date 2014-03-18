@@ -422,6 +422,20 @@ class FacebookService
         return $this->session->get(static::ACCESS_TOKEN_KEY);
     }
 
+    public function deleteAppRequest($full_id)
+    {
+        $access_token = $this->getAppAccessToken();
+
+        $c = curl_init();
+        curl_setopt_array($c, array(
+            CURLOPT_URL             =>  sprintf("https://graph.facebook.com/%s?access_token=%s", $full_id, $access_token),
+            CURLOPT_RETURNTRANSFER  =>  true,
+            CURLOPT_CUSTOMREQUEST   =>  "DELETE",
+        ));
+
+        curl_exec($c);
+    }
+
     /**
      * base64_url decodes a string
      *
