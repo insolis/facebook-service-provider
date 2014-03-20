@@ -107,14 +107,20 @@ class FacebookService
     /**
      * Returns the authorization url neccessary for the required permissions
      *
+     * @param array|null $scope to override the configured permissions
      * @return string
      */
-    public function getAuthorizationUrl()
+    public function getAuthorizationUrl(array $scope = null)
     {
+        // this way you can override the scope to be an empty array and request only the basic permissions
+        if (is_null($scope)) {
+            $scope = $this->permissions;
+        }
+
         return "https://www.facebook.com/dialog/oauth?" . http_build_query(array(
             "client_id"    => $this->app_id,
             "redirect_uri" => $this->url_generator->generate($this->redirect_route, array(), true),
-            "scope"        => implode(",", $this->permissions),
+            "scope"        => implode(",", $scope),
         ));
     }
 
