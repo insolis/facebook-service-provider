@@ -422,6 +422,11 @@ class FacebookService
         return $this->session->get(static::ACCESS_TOKEN_KEY);
     }
 
+    /**
+     * Deletes the app request with the given id
+     *
+     * @param string $full_id The request's full id in the format {REQUEST_OBJECT_ID}_{USER_ID}
+     */
     public function deleteAppRequest($full_id)
     {
         $access_token = $this->getAppAccessToken();
